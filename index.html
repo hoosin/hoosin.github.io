@@ -1,5 +1,7 @@
+ 
+
 <!DOCTYPE html>
-<html lang="zh-cn">
+<html xmlns:wb="http://open.weibo.com/wb">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,minimal-ui,initial-scale=1,user-scalable=no">
@@ -16,5 +18,30 @@ Stop reading, start creating.
 <b>Pick a small market and dominate it.</b>
 
 <p>-- hoosin</p>
+
+ 
+<!-- <span id="wb_connect_btn"></span>  -->
+<span id="wb_connect_btn2"></span> 
+	<script src="http://tjs.sjs.sinajs.cn/open/api/js/wb.js?appkey=993424732&debug=true" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript">
+WB2.anyWhere(function(W){
+	W.widget.connectButton({
+		id: "wb_connect_btn"
+	});
+	
+	W.widget.connectButton({
+		id: "wb_connect_btn2",
+		callback : {
+			login:function(o){
+				console.log(o.avatar_large)
+				console.log(o.screen_name)
+			},
+			logout:function(){
+				console.log()
+			}
+		}
+	});
+});
+	</script>
 </body>
 </html>
