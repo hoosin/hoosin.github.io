@@ -8,40 +8,487 @@
   <title>littlewb</title>
   <meta property="wb:webmaster" content="0e2e4f57f5824f61" />
   <style>
-body{font-family:monospace;line-height:1.35;padding:2em 1em;}
-p{text-align:right;font-style:italic;max-width:600px;color:#999;}
+
 </style>
 </head>
 <body>
-Hi there, 
-Stop reading, start creating.
-<b>Pick a small market and dominate it.</b>
-
-<p>-- hoosin</p>
+<canvas width="400" height="400" id="liquid"></canvas>
 
  
 <!-- <span id="wb_connect_btn"></span>  -->
-<span id="wb_connect_btn2"></span> 
+<!-- <span id="wb_connect_btn2"></span>  -->
 	<script src="http://tjs.sjs.sinajs.cn/open/api/js/wb.js?appkey=993424732&debug=true" type="text/javascript" charset="utf-8"></script>
 <script type="text/javascript">
-WB2.anyWhere(function(W){
-	W.widget.connectButton({
-		id: "wb_connect_btn"
-	});
+// WB2.anyWhere(function(W){
+// 	W.widget.connectButton({
+// 		id: "wb_connect_btn"
+// 	});
 	
-	W.widget.connectButton({
-		id: "wb_connect_btn2",
-		callback : {
-			login:function(o){
-				console.log(o.avatar_large)
-				console.log(o.screen_name)
-			},
-			logout:function(){
-				console.log()
-			}
-		}
-	});
-});
+// 	W.widget.connectButton({
+// 		id: "wb_connect_btn2",
+// 		callback : {
+// 			login:function(o){
+// 				console.log(o.avatar_large)
+// 				console.log(o.screen_name)
+// 			},
+// 			logout:function(){
+// 				console.log()
+// 			}
+// 		}
+// 	});
+// });
+
+
+ 
+var canvas;
+var context;
+var running = false;
+var width = 0;
+var height = 0;
+var liquidTest;
+var step = 0;
+ 
+function LiquidTest(gsizeX, gsizeY, particlesX, particlesY)
+{
+    this.particles = [];
+ 
+    this.gsizeX = gsizeX;
+    this.gsizeY = gsizeY;
+ 
+    this.grid = [[]]; //Nodes
+    this.active = []; //Nodes
+    this.water = new Material(1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+    this.pressed = false;
+    this.pressedprev = false;
+ 
+    this.mx = 0;
+    this.my = 0;
+    this.mxprev = 0;
+    this.myprev = 0;
+ 
+    this.init = function()
+    {
+        var i = 0, j = 0;
+        this.grid = [];
+        for (i = 0; i < this.gsizeX; i++)
+        {
+            this.grid.push([]);
+            for (j = 0; j < this.gsizeY; j++)
+            {
+                this.grid[i].push(new Node());
+            }
+        }
+ 
+        var p;
+        for (i = 0; i < particlesX; i++)
+            for (j = 0; j < particlesY; j++)
+            {
+                p = new Particle(this.water, i + 4, j + 4, 0.0, 0.0);
+                this.particles.push(p);
+            }
+    }
+ 
+    this.paint = function()
+    {
+      context.clearRect(0, 0, width, height);
+ 
+    context.beginPath();
+        for (var pi in this.particles)
+        {
+            var p = this.particles[pi];
+            line(4.0 * p.x,         4.0 * p.y,
+                 4.0 * (p.x - p.u), 4.0 * (p.y - p.v));
+        }
+ 
+    context.stroke();
+    }
+ 
+    this.simulate = function()
+    {
+        var drag = false;
+        var mdx = 0.0, mdy = 0.0;
+ 
+        if (this.pressed && this.pressedprev)
+        {
+            drag = true;
+            mdx = 0.25 * (this.mx - this.mxprev);
+            mdy = 0.25 * (this.my - this.myprev);
+        }
+ 
+        this.pressedprev = this.pressed;
+        this.mxprev = this.mx;
+        this.myprev = this.my;
+ 
+        for (var n in this.active)
+            this.active[n].clear();
+        this.active.length = 0;
+ 
+        var i, j;
+        var x, y, phi;
+        var fx = 0.0, fy = 0.0;
+        for (var pi in this.particles)
+        {
+            var p = this.particles[pi];
+            p.cx = parseInt(p.x - 0.5);
+            p.cy = parseInt(p.y - 0.5);
+ 
+            x = p.cx - p.x;
+            p.px[0] = (0.5 * x * x + 1.5 * x + 1.125);
+            p.gx[0] = (x + 1.5);
+            x += 1.0;
+            p.px[1] = (-x * x + 0.75);
+            p.gx[1] = (-2.0 * x);
+            x += 1.0;
+            p.px[2] = (0.5 * x * x - 1.5 * x + 1.125);
+            p.gx[2] = (x - 1.5);
+ 
+            y = p.cy - p.y;
+            p.py[0] = (0.5 * y * y + 1.5 * y + 1.125);
+            p.gy[0] = (y + 1.5);
+            y += 1.0;
+            p.py[1] = (-y * y + 0.75);
+            p.gy[1] = (-2.0 * y);
+            y += 1.0;
+            p.py[2] = (0.5 * y * y - 1.5 * y + 1.125);
+            p.gy[2] = (y - 1.5);
+ 
+            for (var i = 0; i < 3; i++)
+            {
+                for (var j = 0; j < 3; j++)
+                {
+                    var n = this.grid[p.cx + i][p.cy + j];
+                    if (!n.active)
+                    {
+                        this.active.push(n);
+                        n.active = true;
+                    }
+                    phi = p.px[i] * p.py[j];
+                    n.m += phi * p.mat.m;
+                    n.d += phi;
+                    n.gx += p.gx[i] * p.py[j];
+                    n.gy += p.px[i] * p.gy[j];
+                }
+            }
+        }
+ 
+        var density, pressure, weight;
+        var n01, n02;
+        var n11, n12;
+        var cx, cy;
+        var cxi, cyi;
+ 
+        var pdx, pdy;
+        var C20, C02, C30, C03;
+        var csum1, csum2;
+        var C21, C31, C12, C13, C11;
+ 
+        var u, u2, u3;
+        var v, v2, v3;
+ 
+        for (var pi in this.particles)
+        {
+            var p = this.particles[pi];
+ 
+            cx = parseInt(p.x);
+            cy = parseInt(p.y);
+            cxi = cx + 1;
+            cyi = cy + 1;
+ 
+            n01 = this.grid[cx][cy];
+            n02 = this.grid[cx][cyi];
+            n11 = this.grid[cxi][cy];
+            n12 = this.grid[cxi][cyi];
+ 
+            pdx = n11.d - n01.d;
+            pdy = n02.d - n01.d;
+            C20 = 3.0 * pdx - n11.gx - 2.0 * n01.gx;
+            C02 = 3.0 * pdy - n02.gy - 2.0 * n01.gy;
+            C30 = -2.0 * pdx + n11.gx + n01.gx;
+            C03 = -2.0 * pdy + n02.gy + n01.gy;
+            csum1 = n01.d + n01.gy + C02 + C03;
+            csum2 = n01.d + n01.gx + C20 + C30;
+            C21 = 3.0 * n12.d - 2.0 * n02.gx - n12.gx - 3.0 * csum1 - C20;
+            C31 = -2.0 * n12.d + n02.gx + n12.gx + 2.0 * csum1 - C30;
+            C12 = 3.0 * n12.d - 2.0 * n11.gy - n12.gy - 3.0 * csum2 - C02;
+            C13 = -2.0 * n12.d + n11.gy + n12.gy + 2.0 * csum2 - C03;
+            C11 = n02.gx - C13 - C12 - n01.gx;
+ 
+            u = p.x - cx;
+            u2 = u * u;
+            u3 = u * u2;
+            v = p.y - cy;
+            v2 = v * v;
+            v3 = v * v2;
+            density = n01.d + n01.gx * u + n01.gy * v + C20 * u2 + C02 * v2 + C30 * u3 + C03 * v3 + C21 * u2 * v + C31 * u3 * v + C12 * u * v2 + C13 * u * v3 + C11 * u * v;
+ 
+            pressure = density - 1.0;
+            if (pressure > 2.0)
+                pressure = 2.0;
+ 
+            fx = 0.0;
+            fy = 0.0;
+ 
+            if (p.x < 4.0)
+                fx += p.mat.m * (4.0 - p.x);
+            else if (p.x > this.gsizeX - 5)
+                fx += p.mat.m * (this.gsizeX - 5 - p.x);
+ 
+            if (p.y < 4.0)
+                fy += p.mat.m * (4.0 - p.y);
+            else if (p.y > this.gsizeY - 5)
+                fy += p.mat.m * (this.gsizeY - 5 - p.y);
+ 
+            if (drag)
+            {
+                var vx = Math.abs(p.x - 0.25 * this.mx);
+                var vy = Math.abs(p.y - 0.25 * this.my);
+                if ((vx < 10.0) && (vy < 10.0))
+                {
+                    weight = p.mat.m * (1.0 - vx * 0.10) * (1.0 - vy * 0.10);
+                    fx += weight * (mdx - p.u);
+                    fy += weight * (mdy - p.v);
+                }
+            }
+ 
+            for (i = 0; i < 3; i++)
+            {
+                for (j = 0; j < 3; j++)
+                {
+                    n = this.grid[(p.cx + i)][(p.cy + j)];
+                    phi = p.px[i] * p.py[j];
+                    n.ax += -((p.gx[i] * p.py[j]) * pressure) + fx * phi;
+                    n.ay += -((p.px[i] * p.gy[j]) * pressure) + fy * phi;
+                }
+            }
+        }
+ 
+        for (var ni in this.active)
+        {
+            var n = this.active[ni];
+            if (n.m > 0.0)
+            {
+                n.ax /= n.m;
+                n.ay /= n.m;
+                n.ay += 0.03;
+            }
+        }
+ 
+        var mu, mv;
+        for (var pi in this.particles)
+        {
+            var p = this.particles[pi];
+            for (i = 0; i < 3; i++)
+            {
+                for (j = 0; j < 3; j++)
+                {
+                    n = this.grid[(p.cx + i)][(p.cy + j)];
+                    phi = p.px[i] * p.py[j];
+                    p.u += phi * n.ax;
+                    p.v += phi * n.ay;
+                }
+            }
+            mu = p.mat.m * p.u;
+            mv = p.mat.m * p.v;
+            for (i = 0; i < 3; i++)
+            {
+                for (j = 0; j < 3; j++)
+                {
+                    n = this.grid[(p.cx + i)][(p.cy + j)];
+                    phi = p.px[i] * p.py[j];
+                    n.u += phi * mu;
+                    n.v += phi * mv;
+                }
+            }
+        }
+ 
+        for (var ni in this.active)
+        {
+            var n = this.active[ni];
+            if (n.m > 0.0)
+            {
+                n.u /= n.m;
+                n.v /= n.m;
+            }
+        }
+ 
+        var gu, gv;
+        for (var pi in this.particles)
+        {
+            var p = this.particles[pi];
+            gu = 0.0;
+            gv = 0.0;
+            for (var i = 0; i < 3; i++)
+            {
+                for (var j = 0; j < 3; j++)
+                {
+                    var n = this.grid[(p.cx + i)][(p.cy + j)];
+                    phi = p.px[i] * p.py[j];
+                    gu += phi * n.u;
+                    gv += phi * n.v;
+                }
+            }
+            p.x += gu;
+            p.y += gv;
+            p.u += 1.0 * (gu - p.u);
+            p.v += 1.0 * (gv - p.v);
+            if (p.x < 1.0)
+            {
+                p.x = (1.0 + Math.random() * 0.01);
+                p.u = 0.0;
+            }
+            else if (p.x > this.gsizeX - 2)
+            {
+                p.x = (this.gsizeX - 2 - Math.random() * 0.01);
+                p.u = 0.0;
+            }
+            if (p.y < 1.0)
+            {
+                p.y = (1.0 + Math.random() * 0.01);
+                p.v = 0.0;
+            }
+            else if (p.y > this.gsizeY - 2)
+            {
+                p.y = (this.gsizeY - 2 - Math.random() * 0.01);
+                p.v = 0.0;
+            }
+        }
+    }
+ 
+    this.init();
+}
+ 
+function Node()
+{
+    this.m = 0;
+    this.d = 0;
+    this.gx = 0;
+    this.gy = 0;
+    this.u = 0;
+    this.v = 0;
+    this.ax = 0;
+    this.ay = 0;
+    this.active = false;
+    
+    this.clear = function()
+    {
+        this.m = this.d = this.gx = this.gy = this.u = this.v = this.ax = this.ay = 0.0;
+        this.active = false;
+    }
+}
+ 
+function Particle(mat, x, y, u, v)
+{
+    this.mat = mat;
+    this.x = x;
+    this.y = y;
+    this.u = u;
+    this.v = v;
+ 
+    this.dudx = 0;
+    this.dudy = 0;
+    this.dvdx = 0;
+    this.dvdy = 0;
+    this.cx = 0;
+    this.cy = 0;
+ 
+    this.px = [0,0,0];
+    this.py = [0,0,0];
+    this.gx = [0,0,0];
+    this.gy = [0,0,0];
+}
+ 
+function Material(m, rd, k, v, d, g)
+{
+    this.m = m;
+    this.rd = rd;
+    this.k = k;
+    this.v = v;
+    this.d = d;
+    this.g = g;
+}
+ 
+function line(x1,y1,x2,y2) {
+    context.moveTo(x1,y1);
+    context.lineTo(x2,y2);
+}
+ 
+function getPosition(obj) {
+    var p = obj.offsetParent;
+    var left = obj.offsetLeft;
+    var top = obj.offsetTop;
+    if (p) {
+        var pos = getPosition(p);
+        left += pos[0];
+        top += pos[1];
+    }
+    return [left, top];
+}
+ 
+function mouseMoved(event)
+{
+    var pos = getPosition(canvas);
+    liquidTest.mx = event.pageX - pos[0];
+    liquidTest.my = event.pageY - pos[1];
+}
+ 
+function mousePressed(event)
+{
+    liquidTest.pressed = true;
+}
+ 
+function mouseReleased(event)
+{
+    liquidTest.pressed = false;
+}
+ 
+function stop()
+{
+    running = false;
+}
+ 
+function start()
+{
+    running = true;
+    draw();
+}
+ 
+function restart(gsizeX, gsizeY, particlesX, particlesY)
+{
+    liquidTest = new LiquidTest(gsizeX, gsizeY, particlesX, particlesY);
+    running = true;
+    draw();
+}
+ 
+function draw()
+{
+    // clear
+ 
+    // advance simulation
+    liquidTest.simulate();
+ 
+    step ++;
+}
+ 
+function init() {
+    canvas = document.getElementById('liquid');
+    width = canvas.width;
+    height = canvas.height;
+    context = canvas.getContext('2d');
+    context.strokeStyle = "#0000FF";
+ 
+    canvas.onmousedown = mousePressed;
+    canvas.onmouseup = mouseReleased;
+    canvas.onmousemove = mouseMoved;
+ 
+    liquidTest = new LiquidTest(100, 100, 50, 50);
+ 
+    start();
+}
+ 
+setInterval(draw, 33);
+setInterval("liquidTest.paint()", 33);
+ 
+init();
 	</script>
 </body>
 </html>
