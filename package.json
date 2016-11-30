@@ -2,17 +2,18 @@
   "name": "hoosin.github.io",
   "version": "1.0.0",
   "description": "",
-  "main": ".js",
+  "main": "./dist/bundle.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack -p --config webpack.config.js ",
+    "build":"webpack",
+    "release":"git add . && git commit -m 'release' && git push"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hoosin/hoosin.github.io.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "hoosin",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/hoosin/hoosin.github.io/issues"
   },
