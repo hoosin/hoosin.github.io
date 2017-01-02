@@ -302,7 +302,7 @@ app.posts = function() {
     }, {
         date: '2015/12/29',
         title: '2015 年终总结',
-        url: 'https://github.com/hoosin/hoosin.github.io/issues/3'
+        url: 'https://github.com/hoosin/hoosin.github.io/issues/1'
     }]
 
     var $ = document.querySelector.bind(document);
